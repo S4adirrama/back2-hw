@@ -5,21 +5,20 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import settings
-from src.dao.user_dao import UserDAO
 from src.repositories.user_repository import UserRepository
 from src.schemas.user import UserLogInDTO, UserSignUpDTO
 
 
 class UserService:
     @staticmethod
-    async def create_user(user_data: UserSignUpDTO, db: AsyncSession) -> str:
-        existing_user = await UserDAO.find_one_or_none(db, email=user_data.email)
+    async def create_user(user_data: UserSignUpDTO) -> str:
+        existing_user = await UserRepository.find_one_or_none(email=user_data.email)
         if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Email already in use!"
             )
 
-        new_user = await UserRepository.create_user(user_data, db)
+        new_user = await UserRepository.insert_one(user_data)
         if not new_user:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -29,8 +28,8 @@ class UserService:
         return UserService.generate_token({"user_id": str(new_user.id)})
 
     @staticmethod
-    async def authenticate_user(user_data: UserLogInDTO, db: AsyncSession) -> str:
-        user = await UserRepository.get_user_by_email(email=user_data.email, db=db)
+    async def authenticate_user(user_data: UserLogInDTO) -> str:
+        user = await UserRepository.find_one_or_none(email=user_data.email)
         if not user or not user.check_password(user_data.password):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid credentials!"

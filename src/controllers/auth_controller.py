@@ -8,14 +8,13 @@ from src.services.user.user_service import UserService
 
 router = APIRouter()
 
-
 @router.post("/signup", status_code=status.HTTP_201_CREATED)
-async def signup(request: UserSignUpDTO, db: DBSessionDep):
-    token = await UserService.create_user(user_data=request, db=db)
+async def signup(request: UserSignUpDTO):
+    token = await UserService.create_user(user_data=request)
     return JSONResponse({"token": token}, status_code=status.HTTP_201_CREATED)
 
 
 @router.post("/login", status_code=status.HTTP_200_OK)
-async def login(request: UserLogInDTO, db: DBSessionDep):
-    token = await UserService.authenticate_user(user_data=request, db=db)
+async def login(request: UserLogInDTO):
+    token = await UserService.authenticate_user(user_data=request)
     return JSONResponse({"token": token}, status_code=status.HTTP_200_OK)
