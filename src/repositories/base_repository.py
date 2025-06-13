@@ -1,7 +1,7 @@
 import uuid
 from typing import Type, TypeVar, Optional, Sequence, Any, Generic
 
-from dao.base_dao import BaseDAO
+from src.dao.base_dao import BaseDAO
 from src.logger import logger
 
 from abc import ABC, abstractmethod

@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   app:
     build:
@@ -6,20 +8,60 @@ services:
     ports:
       - "8080:8000"
     environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/auth_db
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/billboard_db
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
     volumes:
       - .:/src
-    command: ["uvicorn", "src.app:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    command: uvicorn src.app:app --host 0.0.0.0 --port 8000
     depends_on:
       - db
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
 
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_PASSWORD: postgres
       POSTGRES_USER: postgres
-      POSTGRES_DB: auth_db
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: billboard_db
     ports:
       - "5557:5432"
     healthcheck:
-      test: [ "CMD", "pg_isready", "-U", "postgres"]
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      retries: 5
+
+  celery:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    command: celery -A src.worker worker --loglevel=info
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/billboard_db
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    depends_on:
+      - redis
+      - db
+
+  beat:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    command: celery -A src.worker beat --loglevel=info
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/billboard_db
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    depends_on:
+      - redis
+      - db
+      - celery

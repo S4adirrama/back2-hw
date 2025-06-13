@@ -5,7 +5,7 @@ ENV_FILE := .env
 DEV_ENV_FILE := .env.dev
 SERVICE_NAME := auth-service
 
-# Main commands
+# Main commands;
 build:
 	docker-compose -f docker-compose.dev.yml build
 
